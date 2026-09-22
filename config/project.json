@@ -1,0 +1,16 @@
+{
+  "project_title": "零售交易数据驱动的经营分析与风险信号识别",
+  "raw_file": "data/raw/online_retail_II.xlsx",
+  "cleaned_batch": "data/processed/20260917T121850_455264Z",
+  "customer_report": "reports/customer_analysis/20260917T132404_471652Z",
+  "business_report": "reports/business_analysis/20260917T133152_158550Z",
+  "forecast_report": "reports/forecasting/20260918T094813_953260Z",
+  "risk_report": "reports/risk_signals/20260918T132525_447062Z",
+  "corrected_customer_plot": "reports/stage1_validation/20260918T115715_932402Z/customer_segments_corrected.png",
+  "rfm_start": "2010-12-01",
+  "rfm_end_exclusive": "2011-12-01",
+  "forecast_cutoff_exclusive": "2011-12-01",
+  "validation_weeks": 12,
+  "test_weeks": 12,
+  "ai_summary_report": "reports/ai_summary/20260918T135316_321637Z"
+}
