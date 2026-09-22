@@ -174,3 +174,7 @@ A four-week moving average was selected using validation data.
 Its test WAPE was 18.42%. Results describe historical transactions,
 not profit, cash flow, confirmed customer churn, or a validated
 enterprise risk rating.
+
+[下载演示包](https://github.com/jianbutao/retail-finance-analytics/releases/download/v1.0.0/retail-finance-demo-v1.zip)
+解压后按照包内README运行。
+演示包包含必要归档成果；仅克隆源码仓库不能直接加载这些数据。
