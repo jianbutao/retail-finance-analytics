@@ -1,0 +1,186 @@
+metrics:
+  - id: product_gross_amount
+    name: 商品正向交易金额
+    synonyms:
+      - 正向交易额
+      - 销售额
+      - 成交额
+      - 营业额
+      - 商品销售额
+    category: 金额
+    sql: "ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2)"
+    dimensions:
+      - 国家
+      - 月份
+      - 日期
+      - 商品
+      - 客户
+    boundary: 不是会计收入、利润或到账现金
+    example_question: 2011年11月的商品正向交易金额是多少
+
+  - id: product_cancel_amount
+    name: 商品取消冲销金额
+    synonyms:
+      - 取消金额
+      - 冲销金额
+      - 退款金额
+      - 退货金额
+    category: 金额
+    sql: "ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2)"
+    dimensions:
+      - 国家
+      - 月份
+      - 商品
+    boundary: 未逐笔匹配原订单，不证明实际退款
+    example_question: 上个月取消金额是多少
+
+  - id: product_net_amount
+    name: 商品交易净额
+    synonyms:
+      - 净额
+      - 净销售额
+      - 交易净额
+    category: 金额
+    sql: "ROUND(SUM(line_amount) FILTER (WHERE include_product_sales OR include_product_cancellations), 2)"
+    dimensions:
+      - 国家
+      - 月份
+      - 日期
+    boundary: 可能包含跨期取消，不是利润
+
+  - id: cancel_ratio
+    name: 取消金额占比
+    synonyms:
+      - 取消率
+      - 冲销比例
+      - 退款占比
+    category: 金额
+    sql: "取消金额 ÷ 同观察期正向金额 × 100"
+    dimensions:
+      - 月份
+      - 国家
+    boundary: 不是订单退款率；分母为零时结果为空
+    trap: 业务方常说的"退款率"在本数据中只能用取消金额占比近似，需明确说明口径
+
+  - id: sales_orders
+    name: 正向订单数
+    synonyms:
+      - 订单数
+      - 订单量
+      - 单数
+    category: 订单
+    sql: "COUNT(DISTINCT invoice_no) FILTER (WHERE include_product_sales)"
+    dimensions:
+      - 国家
+      - 月份
+      - 日期
+    boundary: 同一订单多行只计一次
+    example_question: 2011年11月有多少笔正向订单
+
+  - id: identified_buyers
+    name: 已识别购买客户数
+    synonyms:
+      - 客户数
+      - 购买人数
+      - 识别客户数
+    category: 客户
+    sql: "COUNT(DISTINCT customer_id) FILTER (WHERE include_customer_sales)"
+    dimensions:
+      - 国家
+      - 月份
+    boundary: 不包含customer_id为空的未识别客户
+    example_question: 2011年有多少名已识别购买客户
+
+  - id: identified_coverage
+    name: 客户金额覆盖率
+    synonyms:
+      - 客户金额覆盖率
+      - 已识别客户金额占比
+    category: 客户
+    sql: "已识别客户正向金额 ÷ 全部商品正向金额 × 100"
+    dimensions:
+      - 月份
+    boundary: 是金额覆盖率，不是客户人数覆盖率
+
+  - id: customer_concentration
+    name: 客户集中度
+    synonyms:
+      - 头部客户占比
+      - TOP客户占比
+      - top10占比
+      - 客户集中度
+    category: 客户
+    sql: "指定前N客户金额 ÷ 已识别或全部正向金额 × 100"
+    dimensions:
+      - 月份
+    boundary: 必须标明分母（已识别客户还是全部）；正向排名会受冲销影响
+    example_question: 2011年11月TOP10客户金额占比是多少
+
+  - id: sales_days
+    name: 有销售记录天数
+    synonyms:
+      - 销售天数
+      - 营业天数
+    category: 订单
+    sql: "COUNT(DISTINCT invoice_date::date) FILTER (WHERE include_product_sales)"
+    dimensions:
+      - 月份
+    boundary: 不是已确认营业天数；无记录不证明当天零营业
+
+  - id: rfm_r
+    name: R-最近购买间隔
+    synonyms:
+      - R值
+      - 最近购买时间
+      - 客户活跃度
+    category: RFM
+    sql: "RFM截止日（2011-12-01）减去最近一次正向交易日期的日历天数"
+    boundary: 不逐笔扣除后来取消的订单
+
+  - id: rfm_f
+    name: F-购买频次
+    synonyms:
+      - F值
+      - 购买次数
+      - 订单频次
+    category: RFM
+    sql: "RFM窗口内正向订单去重数 COUNT(DISTINCT invoice_no)"
+    boundary: 不逐笔扣除后来取消的订单
+
+  - id: rfm_m
+    name: M-消费金额
+    synonyms:
+      - M值
+      - 客户消费额
+      - 客户贡献金额
+    category: RFM
+    sql: "RFM窗口内商品交易净额 SUM(line_amount)"
+    boundary: 仅净额为正的客户获得M分数
+
+  - id: forecast_mae
+    name: MAE平均绝对误差
+    synonyms:
+      - MAE
+      - 平均绝对误差
+    category: 预测
+    sql: "AVG(ABS(预测值 - 实际值))"
+    boundary: 单位GBP，越低越好
+
+  - id: forecast_wape
+    name: WAPE加权绝对百分比误差
+    synonyms:
+      - WAPE
+      - 预测误差率
+    category: 预测
+    sql: "SUM(ABS(预测值 - 实际值)) ÷ SUM(ABS(实际值)) × 100"
+    boundary: 不能用100%-WAPE称为准确率；本项目12周测试集实测WAPE为18.42%
+    known_result: 12周测试集 WAPE = 18.42%
+
+  - id: forecast_bias
+    name: 平均偏差
+    synonyms:
+      - 预测偏差
+      - 偏差
+    category: 预测
+    sql: "AVG(预测值 - 实际值)"
+    boundary: 正值为高估，负值为低估；正负误差可相互抵消

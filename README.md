@@ -64,6 +64,42 @@
 主要技术：
 Python、pandas、NumPy、PostgreSQL、scikit-learn、
 Matplotlib、Streamlit。
+## NL2SQL 自助分析与评估（nl2sql-retail/）
+
+在上述分析基础上，进一步构建自然语言取数（NL2SQL）子系统与 Power BI 经营看板，
+让业务人员用中文问题直接查询 PostgreSQL，并建立可量化的大模型效果评估闭环。
+
+技术链路：语义层（YAML 指标口径）→ 大模型生成 SQL → 只读安全校验与执行
+→ 三层评分（执行成功率 / 结果一致率 / 口径正确率）→ badcase 归因与规则沉淀
+→ 评估反馈迭代 → Power BI 看板。
+
+### 目录结构
+
+- `nl2sql-retail/semantic/`：tables.yaml、metrics.yaml，15 项指标的字段说明、同义词、口径 SQL 与边界。
+- `nl2sql-retail/src/01_semantic_loader.py`：读取语义层生成数据说明书。
+- `nl2sql-retail/src/02_nl2sql.py`：NL2SQL 引擎，含 SQL 安全护栏（只读账号、写操作拦截、单语句、强制 LIMIT、30 秒超时）。
+- `nl2sql-retail/src/03_evaluate.py`：Golden 评估集三层评分脚本。
+- `nl2sql-retail/evaluation/golden_questions.yaml`：30 题评估集（单指标 / 维度 / 趋势 / 组合 / 口径陷阱 5 类）。
+- `nl2sql-retail/powerbi/retail_dashboard.pbix`：Power BI 经营看板。
+- `nl2sql-retail/reports/`：优化前后评估报告（baseline、optimized）。
+
+### 关键结果
+
+- 构建 30 题 Golden 评估集，设计执行成功率、结果一致率、口径正确率三层评分。
+- 经 badcase 归因（NULL 排序、TOP N 限制、别名规范、口径遗漏 4 类）并沉淀为生成规则，
+  结果一致率从 76.7% 提升至 93% 以上，执行成功率与口径正确率达 100%。
+- Power BI 看板包含 KPI 卡片、月度趋势、国家 / 商品 TOP10、取消占比，DAX 度量值复用语义层口径。
+
+### 运行
+
+子项目使用独立虚拟环境（nl2sql-retail/.venv），不影响原项目环境。
+
+```powershell
+# 单条自然语言问题
+& ".\nl2sql-retail\.venv\Scripts\python.exe" .\nl2sql-retail\src\02_nl2sql.py "2011年11月正向交易金额"
+# 评估集评分
+& ".\nl2sql-retail\.venv\Scripts\python.exe" .\nl2sql-retail\src\03_evaluate.py optimized
+
 
 
 ## 已实现功能

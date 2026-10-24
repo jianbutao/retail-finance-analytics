@@ -1,0 +1,402 @@
+questions:
+  - id: S01
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales]
+    question: 2011年11月的商品正向交易金额是多少
+    reference_sql: |
+      SELECT ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: S02
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_cancellations]
+    question: 2011年11月的商品取消金额是多少
+    reference_sql: |
+      SELECT ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: S03
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales, include_product_cancellations]
+    question: 2011年11月的商品交易净额是多少
+    reference_sql: |
+      SELECT ROUND(SUM(line_amount) FILTER (
+        WHERE include_product_sales OR include_product_cancellations), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: S04
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales, "distinct"]
+    question: 2011年11月的正向订单数是多少
+    reference_sql: |
+      SELECT COUNT(DISTINCT invoice_no) FILTER (WHERE include_product_sales)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: S05
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_customer_sales, "distinct"]
+    question: 全期一共有多少名已识别购买客户
+    reference_sql: |
+      SELECT COUNT(DISTINCT customer_id) FILTER (WHERE include_customer_sales)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+
+  - id: S06
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_cancellations, include_product_sales]
+    question: 2011年11月取消金额占正向金额的比例是多少
+    reference_sql: |
+      SELECT ROUND(
+        -SUM(line_amount) FILTER (WHERE include_product_cancellations)
+        / NULLIF(SUM(line_amount) FILTER (WHERE include_product_sales), 0) * 100, 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: S07
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales, "distinct"]
+    question: 2011年一共有多少天有销售记录
+    reference_sql: |
+      SELECT COUNT(DISTINCT invoice_date::date)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND invoice_date >= '2011-01-01'
+        AND invoice_date < '2012-01-01'
+
+  - id: S08
+    category: 单指标
+    result_type: scalar
+    required_tokens: [country, "distinct"]
+    question: 数据里一共覆盖多少个国家
+    reference_sql: |
+      SELECT COUNT(DISTINCT country)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+
+  - id: S09
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales, "distinct"]
+    question: 数据里一共有多少种商品
+    reference_sql: |
+      SELECT COUNT(DISTINCT stock_code)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+
+  - id: S10
+    category: 单指标
+    result_type: scalar
+    required_tokens: [include_product_sales]
+    question: 全期商品正向交易总金额是多少
+    reference_sql: |
+      SELECT ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+
+  - id: D01
+    category: 维度筛选
+    result_type: scalar
+    required_tokens: [include_product_sales, "United Kingdom"]
+    question: 2011年11月英国的商品正向交易金额是多少
+    reference_sql: |
+      SELECT ROUND(SUM(line_amount), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND country = 'United Kingdom'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: D02
+    category: 维度筛选
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年商品正向金额最高的5个国家
+    reference_sql: |
+      SELECT country, ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY country
+      ORDER BY gross DESC
+      LIMIT 5
+
+  - id: D03
+    category: 维度筛选
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年11月商品正向金额最高的5个商品
+    reference_sql: |
+      SELECT stock_code, description, ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+      GROUP BY stock_code, description
+      ORDER BY gross DESC
+      LIMIT 5
+
+  - id: D04
+    category: 维度筛选
+    result_type: scalar
+    required_tokens: [include_product_sales, France, "distinct"]
+    question: 法国全期的正向订单数是多少
+    reference_sql: |
+      SELECT COUNT(DISTINCT invoice_no)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND country = 'France'
+
+  - id: D05
+    category: 维度筛选
+    result_type: scalar
+    required_tokens: [include_product_sales, "United Kingdom", "distinct"]
+    question: 2011年11月英国的正向订单数是多少
+    reference_sql: |
+      SELECT COUNT(DISTINCT invoice_no)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND country = 'United Kingdom'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: D06
+    category: 维度筛选
+    result_type: table
+    required_tokens: [include_customer_sales, group by]
+    question: 2011年购买客户数最多的5个国家
+    reference_sql: |
+      SELECT country, COUNT(DISTINCT customer_id) AS buyers
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_customer_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY country
+      ORDER BY buyers DESC
+      LIMIT 5
+
+  - id: D07
+    category: 维度筛选
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年11月商品正向金额最高的商品
+    reference_sql: |
+      SELECT stock_code, description, ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+      GROUP BY stock_code, description
+      ORDER BY gross DESC
+      LIMIT 1
+
+  - id: D08
+    category: 维度筛选
+    result_type: table
+    required_tokens: [item_type, group by]
+    question: 各商品类型分别有多少条记录
+    reference_sql: |
+      SELECT item_type, COUNT(*) AS cnt
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+      GROUP BY item_type
+      ORDER BY item_type
+
+  - id: T01
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年每个月的商品正向交易金额
+    reference_sql: |
+      SELECT DATE_TRUNC('month', invoice_date)::date AS month,
+             ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY DATE_TRUNC('month', invoice_date)::date
+      ORDER BY month
+
+  - id: T02
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_product_sales, group by, "distinct"]
+    question: 2011年每个月的正向订单数
+    reference_sql: |
+      SELECT DATE_TRUNC('month', invoice_date)::date AS month,
+             COUNT(DISTINCT invoice_no) AS orders
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY DATE_TRUNC('month', invoice_date)::date
+      ORDER BY month
+
+  - id: T03
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_product_cancellations, group by]
+    question: 2011年每个月的商品取消金额
+    reference_sql: |
+      SELECT DATE_TRUNC('month', invoice_date)::date AS month,
+             ROUND(-SUM(line_amount), 2) AS cancel
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_cancellations
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY DATE_TRUNC('month', invoice_date)::date
+      ORDER BY month
+
+  - id: T04
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_customer_sales, group by, "distinct"]
+    question: 2011年每个月的已识别购买客户数
+    reference_sql: |
+      SELECT DATE_TRUNC('month', invoice_date)::date AS month,
+             COUNT(DISTINCT customer_id) AS buyers
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_customer_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY DATE_TRUNC('month', invoice_date)::date
+      ORDER BY month
+
+  - id: T05
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年每个季度的商品正向交易金额
+    reference_sql: |
+      SELECT DATE_TRUNC('quarter', invoice_date)::date AS quarter,
+             ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND invoice_date >= '2011-01-01' AND invoice_date < '2012-01-01'
+      GROUP BY DATE_TRUNC('quarter', invoice_date)::date
+      ORDER BY quarter
+
+  - id: T06
+    category: 时间趋势
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年11月每一天的商品正向交易金额
+    reference_sql: |
+      SELECT invoice_date::date AS day, ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+      GROUP BY invoice_date::date
+      ORDER BY day
+
+  - id: M01
+    category: 多指标组合
+    result_type: table
+    required_tokens: [include_product_sales, include_product_cancellations, "distinct"]
+    question: 2011年11月的正向金额、取消金额、净额和订单数分别是多少
+    reference_sql: |
+      SELECT
+        ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2) AS gross,
+        ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2) AS cancel,
+        ROUND(SUM(line_amount) FILTER (
+          WHERE include_product_sales OR include_product_cancellations), 2) AS net,
+        COUNT(DISTINCT invoice_no) FILTER (WHERE include_product_sales) AS orders
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: M02
+    category: 多指标组合
+    result_type: scalar
+    required_tokens: [include_customer_sales, include_product_sales]
+    question: 2011年11月金额最高的10个客户占全部正向金额的比例
+    reference_sql: |
+      WITH cs AS (
+        SELECT customer_id, SUM(line_amount) AS amt
+        FROM analytics.transactions
+        WHERE source_batch = '20260917T121850_455264Z'
+          AND include_customer_sales
+          AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+        GROUP BY customer_id
+      ), tot AS (
+        SELECT SUM(line_amount) AS all_amt
+        FROM analytics.transactions
+        WHERE source_batch = '20260917T121850_455264Z'
+          AND include_product_sales
+          AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+      )
+      SELECT ROUND(
+        (SELECT SUM(amt) FROM (SELECT amt FROM cs ORDER BY amt DESC LIMIT 10) x)
+        / (SELECT all_amt FROM tot) * 100, 2)
+
+  - id: M03
+    category: 多指标组合
+    result_type: table
+    required_tokens: [include_product_sales, group by]
+    question: 2011年11月正向金额最高的5个国家及其正向金额
+    reference_sql: |
+      SELECT country, ROUND(SUM(line_amount), 2) AS gross
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND include_product_sales
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+      GROUP BY country
+      ORDER BY gross DESC
+      LIMIT 5
+
+
+  - id: M04
+    category: 多指标组合
+    result_type: scalar
+    required_tokens: [include_customer_sales, include_product_sales]
+    question: 2011年11月已识别客户的正向金额覆盖率是多少
+    reference_sql: |
+      SELECT ROUND(
+        SUM(line_amount) FILTER (WHERE include_customer_sales)
+        / SUM(line_amount) FILTER (WHERE include_product_sales) * 100, 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: C01
+    category: 口径陷阱
+    result_type: scalar
+    required_tokens: [include_product_sales]
+    question: 2011年11月的总销售额是多少
+    reference_sql: |
+      SELECT ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'
+
+  - id: C02
+    category: 口径陷阱
+    result_type: scalar
+    required_tokens: [include_customer_sales, "distinct"]
+    question: 2011年11月有多少个购买客户
+    reference_sql: |
+      SELECT COUNT(DISTINCT customer_id) FILTER (WHERE include_customer_sales)
+      FROM analytics.transactions
+      WHERE source_batch = '20260917T121850_455264Z'
+        AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'

@@ -1,0 +1,121 @@
+database:
+  name: retail_finance
+  schema: analytics
+  currency: GBP
+  currency_note: 所有金额单位为英镑GBP；保留真实三位小数单价，汇总后展示两位小数
+  default_batch: "20260917T121850_455264Z"
+
+tables:
+  - name: analytics.transactions
+    description: 零售交易明细表，每行代表一张订单中的一个商品明细行，同一张订单可能有多行
+    must_filter:
+      - field: source_batch
+        value: "20260917T121850_455264Z"
+        reason: 所有业务查询必须限定数据批次，避免跨批次重复计算
+    columns:
+      - name: invoice_no
+        cn: 订单号
+        type: text
+        desc: 订单编号；同一订单多个商品行共用一个订单号，统计订单数必须用 COUNT(DISTINCT invoice_no)
+      - name: stock_code
+        cn: 商品编码
+        type: text
+        desc: 商品唯一编码
+      - name: description
+        cn: 商品名称
+        type: text
+        desc: 商品描述
+      - name: customer_id
+        cn: 客户ID
+        type: text
+        desc: 客户编号；部分零售客户未登记，customer_id 为空属于未识别客户
+      - name: country
+        cn: 国家
+        type: text
+        desc: 客户所在国家，共43个，如 United Kingdom、France、Germany
+      - name: invoice_date
+        cn: 交易时间
+        type: timestamp
+        desc: 交易发生时间，范围2009-12-01至2011-12-09；按日聚合用 invoice_date::date，按月聚合用 DATE_TRUNC('month', invoice_date)::date
+      - name: quantity
+        cn: 数量
+        type: integer
+        desc: 商品数量；正向交易为正，取消或冲销为负
+      - name: unit_price
+        cn: 单价
+        type: numeric
+        desc: 商品单价（GBP），存在零单价、负单价等异常记录
+      - name: line_amount
+        cn: 行金额
+        type: numeric
+        desc: 行金额 = quantity × unit_price；正向交易为正，取消冲销为负
+      - name: item_type
+        cn: 商品类型
+        type: text
+        desc: 行项目类型，业务分析只取"商品候选"
+        values:
+          - 商品候选
+          - 邮费及运费
+          - 人工记录
+          - 礼券
+          - 折扣
+          - 银行费用
+          - 样品
+          - 平台费用
+          - 其他调整
+          - 佣金
+          - 编码待核查
+          - 测试记录
+          - 坏账调整
+      - name: transaction_type
+        cn: 交易类型
+        type: text
+        desc: 交易方向类型
+        values:
+          - 正向交易
+          - 取消或冲销
+          - 零单价记录
+          - 负单价记录
+          - 待核查
+      - name: include_product_sales
+        cn: 是否商品正向
+        type: boolean
+        desc: 为TRUE表示计入商品正向交易（商品候选且正向交易）
+      - name: include_product_cancellations
+        cn: 是否商品取消
+        type: boolean
+        desc: 为TRUE表示计入商品取消/冲销，line_amount为负
+      - name: include_customer_sales
+        cn: 是否客户正向
+        type: boolean
+        desc: 为TRUE表示商品正向且customer_id非空，用于客户维度分析
+      - name: source_batch
+        cn: 数据批次
+        type: text
+        desc: 清洗批次标识，所有业务查询固定为 20260917T121850_455264Z
+      - name: source_sheet
+        cn: 来源工作表
+        type: text
+        desc: 原始Excel来源sheet
+      - name: source_excel_row
+        cn: 原始行号
+        type: integer
+        desc: 原始Excel行号
+      - name: excluded_cross_sheet_duplicate
+        cn: 是否跨表重复
+        type: boolean
+        desc: TRUE表示该行属于跨表重复已剔除
+
+time_windows:
+  - name: 全期经营分析
+    start: "2009-12-01"
+    end: "2011-12-09"
+    note: 清洗数据全部期间，最后一个月边界截断
+  - name: RFM窗口
+    start: "2010-12-01（含）"
+    end: "2011-12-01（不含）"
+    note: 4293名正向购买客户，取消记录单独汇总
+  - name: 预测窗口
+    start: ""
+    end: "截止2011-12-01（不含）"
+    note: 周一至周日，103个完整日历周，按79/12/12划分训练/验证/测试
