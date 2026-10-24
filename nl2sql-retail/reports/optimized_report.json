@@ -1,0 +1,1146 @@
+{
+  "version": "optimized",
+  "total": 30,
+  "execution_success_rate": 96.67,
+  "result_match_rate": 93.33,
+  "semantic_correct_rate": 96.67,
+  "by_category": {
+    "单指标": {
+      "total": 10,
+      "execution": 10,
+      "result": 9,
+      "semantic": 10
+    },
+    "维度筛选": {
+      "total": 8,
+      "execution": 8,
+      "result": 8,
+      "semantic": 8
+    },
+    "时间趋势": {
+      "total": 6,
+      "execution": 6,
+      "result": 6,
+      "semantic": 6
+    },
+    "多指标组合": {
+      "total": 4,
+      "execution": 3,
+      "result": 3,
+      "semantic": 3
+    },
+    "口径陷阱": {
+      "total": 2,
+      "execution": 2,
+      "result": 2,
+      "semantic": 2
+    }
+  },
+  "details": [
+    {
+      "id": "S01",
+      "category": "单指标",
+      "question": "2011年11月的商品正向交易金额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales"
+      ],
+      "model_sql": "SELECT ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "1457745.53"
+        ]
+      ],
+      "model_result": [
+        [
+          "1457745.53"
+        ]
+      ]
+    },
+    {
+      "id": "S02",
+      "category": "单指标",
+      "question": "2011年11月的商品取消金额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_cancellations"
+      ],
+      "model_sql": "SELECT ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2) AS product_cancel_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND DATE_TRUNC('month', invoice_date) = '2011-11-01'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "25010.54"
+        ]
+      ],
+      "model_result": [
+        [
+          "25010.54"
+        ]
+      ]
+    },
+    {
+      "id": "S03",
+      "category": "单指标",
+      "question": "2011年11月的商品交易净额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "include_product_cancellations"
+      ],
+      "model_sql": "SELECT ROUND(SUM(line_amount) FILTER (WHERE include_product_sales OR include_product_cancellations), 2) AS product_net_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nAND DATE_TRUNC('month', invoice_date) = '2011-11-01'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "1432734.99"
+        ]
+      ],
+      "model_result": [
+        [
+          "1432734.99"
+        ]
+      ]
+    },
+    {
+      "id": "S04",
+      "category": "单指标",
+      "question": "2011年11月的正向订单数是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT invoice_no) FILTER (WHERE include_product_sales) AS sales_orders\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          2751
+        ]
+      ],
+      "model_result": [
+        [
+          2751
+        ]
+      ]
+    },
+    {
+      "id": "S05",
+      "category": "单指标",
+      "question": "全期一共有多少名已识别购买客户",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_customer_sales",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT customer_id) FILTER (WHERE include_customer_sales) AS identified_buyers\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          5852
+        ]
+      ],
+      "model_result": [
+        [
+          5852
+        ]
+      ]
+    },
+    {
+      "id": "S06",
+      "category": "单指标",
+      "question": "2011年11月取消金额占正向金额的比例是多少",
+      "execution_pass": true,
+      "result_pass": false,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_cancellations",
+        "include_product_sales"
+      ],
+      "model_sql": "SELECT\n    ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2) AS product_gross_amount,\n    ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2) AS product_cancel_amount,\n    ROUND(\n        ((-SUM(line_amount) FILTER (WHERE include_product_cancellations)) / NULLIF(SUM(line_amount) FILTER (WHERE include_product_sales), 0)) * 100,\n        2\n    ) AS cancel_ratio\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nAND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\nLIMIT 100",
+      "error": "",
+      "reference_result": [
+        [
+          "1.72"
+        ]
+      ],
+      "model_result": [
+        [
+          "1457745.53",
+          "25010.54",
+          "1.72"
+        ]
+      ]
+    },
+    {
+      "id": "S07",
+      "category": "单指标",
+      "question": "2011年一共有多少天有销售记录",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT invoice_date::date) FILTER (WHERE include_product_sales) AS sales_days\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nAND EXTRACT(YEAR FROM invoice_date) = 2011\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          285
+        ]
+      ],
+      "model_result": [
+        [
+          285
+        ]
+      ]
+    },
+    {
+      "id": "S08",
+      "category": "单指标",
+      "question": "数据里一共覆盖多少个国家",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "country",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT country) AS country_count\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          43
+        ]
+      ],
+      "model_result": [
+        [
+          43
+        ]
+      ]
+    },
+    {
+      "id": "S09",
+      "category": "单指标",
+      "question": "数据里一共有多少种商品",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT stock_code) AS product_kind_count\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nAND include_product_sales = TRUE\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          4896
+        ]
+      ],
+      "model_result": [
+        [
+          4896
+        ]
+      ]
+    },
+    {
+      "id": "S10",
+      "category": "单指标",
+      "question": "全期商品正向交易总金额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales"
+      ],
+      "model_sql": "SELECT ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "19700954.46"
+        ]
+      ],
+      "model_result": [
+        [
+          "19700954.46"
+        ]
+      ]
+    },
+    {
+      "id": "D01",
+      "category": "维度筛选",
+      "question": "2011年11月英国的商品正向交易金额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "United Kingdom"
+      ],
+      "model_sql": "SELECT ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND country = 'United Kingdom'\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\n  AND include_product_sales = TRUE\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "1286274.78"
+        ]
+      ],
+      "model_result": [
+        [
+          "1286274.78"
+        ]
+      ]
+    },
+    {
+      "id": "D02",
+      "category": "维度筛选",
+      "question": "2011年商品正向金额最高的5个国家",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT country, ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND EXTRACT(YEAR FROM invoice_date) = 2011\nGROUP BY country\nORDER BY product_gross_amount DESC NULLS LAST\nLIMIT 5;",
+      "error": "",
+      "reference_result": [
+        [
+          "United Kingdom",
+          "8040142.05"
+        ],
+        [
+          "Netherlands",
+          "275134.86"
+        ],
+        [
+          "EIRE",
+          "261481.04"
+        ],
+        [
+          "Germany",
+          "192290.75"
+        ],
+        [
+          "France",
+          "176052.43"
+        ]
+      ],
+      "model_result": [
+        [
+          "United Kingdom",
+          "8040142.05"
+        ],
+        [
+          "Netherlands",
+          "275134.86"
+        ],
+        [
+          "EIRE",
+          "261481.04"
+        ],
+        [
+          "Germany",
+          "192290.75"
+        ],
+        [
+          "France",
+          "176052.43"
+        ]
+      ]
+    },
+    {
+      "id": "D03",
+      "category": "维度筛选",
+      "question": "2011年11月商品正向金额最高的5个商品",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT stock_code, description, ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'::date\nGROUP BY stock_code, description\nORDER BY product_gross_amount DESC\nLIMIT 5",
+      "error": "",
+      "reference_result": [
+        [
+          "23084",
+          "RABBIT NIGHT LIGHT",
+          "34556.72"
+        ],
+        [
+          "22086",
+          "PAPER CHAIN KIT 50'S CHRISTMAS ",
+          "28985.04"
+        ],
+        [
+          "22197",
+          "POPCORN HOLDER",
+          "14195.60"
+        ],
+        [
+          "85123A",
+          "WHITE HANGING HEART T-LIGHT HOLDER",
+          "14136.70"
+        ],
+        [
+          "22423",
+          "REGENCY CAKESTAND 3 TIER",
+          "13799.58"
+        ]
+      ],
+      "model_result": [
+        [
+          "23084",
+          "RABBIT NIGHT LIGHT",
+          "34556.72"
+        ],
+        [
+          "22086",
+          "PAPER CHAIN KIT 50'S CHRISTMAS ",
+          "28985.04"
+        ],
+        [
+          "22197",
+          "POPCORN HOLDER",
+          "14195.60"
+        ],
+        [
+          "85123A",
+          "WHITE HANGING HEART T-LIGHT HOLDER",
+          "14136.70"
+        ],
+        [
+          "22423",
+          "REGENCY CAKESTAND 3 TIER",
+          "13799.58"
+        ]
+      ]
+    },
+    {
+      "id": "D04",
+      "category": "维度筛选",
+      "question": "法国全期的正向订单数是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "France",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT invoice_no) AS sales_orders\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND country = 'France'\n  AND include_product_sales = TRUE\n  AND invoice_date >= '2009-12-01'\n  AND invoice_date <= '2011-12-09'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          598
+        ]
+      ],
+      "model_result": [
+        [
+          597
+        ]
+      ]
+    },
+    {
+      "id": "D05",
+      "category": "维度筛选",
+      "question": "2011年11月英国的正向订单数是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "United Kingdom",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT invoice_no) AS sales_orders\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND country = 'United Kingdom'\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'::date\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          2481
+        ]
+      ],
+      "model_result": [
+        [
+          2481
+        ]
+      ]
+    },
+    {
+      "id": "D06",
+      "category": "维度筛选",
+      "question": "2011年购买客户数最多的5个国家",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_customer_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT \n    country,\n    COUNT(DISTINCT customer_id) AS identified_buyers\nFROM analytics.transactions\nWHERE \n    source_batch = '20260917T121850_455264Z'\n    AND include_customer_sales = TRUE\n    AND invoice_date >= '2011-01-01' \n    AND invoice_date < '2012-01-01'\nGROUP BY country\nORDER BY identified_buyers DESC NULLS LAST\nLIMIT 5",
+      "error": "",
+      "reference_result": [
+        [
+          "United Kingdom",
+          3808
+        ],
+        [
+          "Germany",
+          93
+        ],
+        [
+          "France",
+          84
+        ],
+        [
+          "Spain",
+          29
+        ],
+        [
+          "Belgium",
+          25
+        ]
+      ],
+      "model_result": [
+        [
+          "United Kingdom",
+          3808
+        ],
+        [
+          "Germany",
+          93
+        ],
+        [
+          "France",
+          84
+        ],
+        [
+          "Spain",
+          29
+        ],
+        [
+          "Belgium",
+          25
+        ]
+      ]
+    },
+    {
+      "id": "D07",
+      "category": "维度筛选",
+      "question": "2011年11月商品正向金额最高的商品",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT stock_code, description, ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'::date\nGROUP BY stock_code, description\nORDER BY product_gross_amount DESC\nLIMIT 1;",
+      "error": "",
+      "reference_result": [
+        [
+          "23084",
+          "RABBIT NIGHT LIGHT",
+          "34556.72"
+        ]
+      ],
+      "model_result": [
+        [
+          "23084",
+          "RABBIT NIGHT LIGHT",
+          "34556.72"
+        ]
+      ]
+    },
+    {
+      "id": "D08",
+      "category": "维度筛选",
+      "question": "各商品类型分别有多少条记录",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "item_type",
+        "group by"
+      ],
+      "model_sql": "SELECT item_type, COUNT(*) AS record_count\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\nGROUP BY item_type\nORDER BY record_count DESC NULLS LAST\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "编码待核查",
+          20
+        ],
+        [
+          "测试记录",
+          17
+        ],
+        [
+          "坏账调整",
+          6
+        ],
+        [
+          "礼券",
+          100
+        ],
+        [
+          "平台费用",
+          36
+        ]
+      ],
+      "model_result": [
+        [
+          "商品候选",
+          1039017
+        ],
+        [
+          "邮费及运费",
+          3788
+        ],
+        [
+          "人工记录",
+          1403
+        ],
+        [
+          "折扣",
+          173
+        ],
+        [
+          "样品",
+          102
+        ]
+      ]
+    },
+    {
+      "id": "T01",
+      "category": "时间趋势",
+      "question": "2011年每个月的商品正向交易金额",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT\n  DATE_TRUNC('month', invoice_date)::date AS invoice_month,\n  ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND EXTRACT(YEAR FROM invoice_date) = 2011\nGROUP BY invoice_month\nORDER BY invoice_month ASC\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-01-01",
+          "671933.19"
+        ],
+        [
+          "2011-02-01",
+          "508886.20"
+        ],
+        [
+          "2011-03-01",
+          "691257.61"
+        ],
+        [
+          "2011-04-01",
+          "516218.12"
+        ],
+        [
+          "2011-05-01",
+          "741192.41"
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-01-01",
+          "671933.19"
+        ],
+        [
+          "2011-02-01",
+          "508886.20"
+        ],
+        [
+          "2011-03-01",
+          "691257.61"
+        ],
+        [
+          "2011-04-01",
+          "516218.12"
+        ],
+        [
+          "2011-05-01",
+          "741192.41"
+        ]
+      ]
+    },
+    {
+      "id": "T02",
+      "category": "时间趋势",
+      "question": "2011年每个月的正向订单数",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by",
+        "distinct"
+      ],
+      "model_sql": "SELECT\n    DATE_TRUNC('month', invoice_date)::date AS transaction_month,\n    COUNT(DISTINCT invoice_no) AS sales_orders\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND invoice_date >= '2011-01-01'\n  AND invoice_date < '2012-01-01'\nGROUP BY transaction_month\nORDER BY transaction_month\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-01-01",
+          1081
+        ],
+        [
+          "2011-02-01",
+          1093
+        ],
+        [
+          "2011-03-01",
+          1440
+        ],
+        [
+          "2011-04-01",
+          1235
+        ],
+        [
+          "2011-05-01",
+          1668
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-01-01",
+          1081
+        ],
+        [
+          "2011-02-01",
+          1093
+        ],
+        [
+          "2011-03-01",
+          1440
+        ],
+        [
+          "2011-04-01",
+          1235
+        ],
+        [
+          "2011-05-01",
+          1668
+        ]
+      ]
+    },
+    {
+      "id": "T03",
+      "category": "时间趋势",
+      "question": "2011年每个月的商品取消金额",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_cancellations",
+        "group by"
+      ],
+      "model_sql": "SELECT\n    DATE_TRUNC('month', invoice_date)::date AS month,\n    ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2) AS product_cancel_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND invoice_date >= '2011-01-01'\n  AND invoice_date < '2012-01-01'\nGROUP BY month\nORDER BY month ASC\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-01-01",
+          "91526.30"
+        ],
+        [
+          "2011-02-01",
+          "8375.87"
+        ],
+        [
+          "2011-03-01",
+          "10675.30"
+        ],
+        [
+          "2011-04-01",
+          "33316.91"
+        ],
+        [
+          "2011-05-01",
+          "8948.23"
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-01-01",
+          "91526.30"
+        ],
+        [
+          "2011-02-01",
+          "8375.87"
+        ],
+        [
+          "2011-03-01",
+          "10675.30"
+        ],
+        [
+          "2011-04-01",
+          "33316.91"
+        ],
+        [
+          "2011-05-01",
+          "8948.23"
+        ]
+      ]
+    },
+    {
+      "id": "T04",
+      "category": "时间趋势",
+      "question": "2011年每个月的已识别购买客户数",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_customer_sales",
+        "group by",
+        "distinct"
+      ],
+      "model_sql": "SELECT\n    DATE_TRUNC('month', invoice_date)::date AS month,\n    COUNT(DISTINCT customer_id) AS identified_buyers\nFROM analytics.transactions\nWHERE\n    source_batch = '20260917T121850_455264Z'\n    AND include_customer_sales = TRUE\n    AND invoice_date >= '2011-01-01'\n    AND invoice_date < '2012-01-01'\nGROUP BY month\nORDER BY month\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-01-01",
+          739
+        ],
+        [
+          "2011-02-01",
+          757
+        ],
+        [
+          "2011-03-01",
+          973
+        ],
+        [
+          "2011-04-01",
+          853
+        ],
+        [
+          "2011-05-01",
+          1054
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-01-01",
+          739
+        ],
+        [
+          "2011-02-01",
+          757
+        ],
+        [
+          "2011-03-01",
+          973
+        ],
+        [
+          "2011-04-01",
+          853
+        ],
+        [
+          "2011-05-01",
+          1054
+        ]
+      ]
+    },
+    {
+      "id": "T05",
+      "category": "时间趋势",
+      "question": "2011年每个季度的商品正向交易金额",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT\n    DATE_TRUNC('quarter', invoice_date)::date AS quarter_date,\n    ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE\n    source_batch = '20260917T121850_455264Z'\n    AND include_product_sales = TRUE\n    AND EXTRACT(YEAR FROM invoice_date) = 2011\nGROUP BY quarter_date\nORDER BY quarter_date\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-01-01",
+          "1872077.00"
+        ],
+        [
+          "2011-04-01",
+          "1996162.40"
+        ],
+        [
+          "2011-07-01",
+          "2445353.27"
+        ],
+        [
+          "2011-10-01",
+          "3179908.62"
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-01-01",
+          "1872077.00"
+        ],
+        [
+          "2011-04-01",
+          "1996162.40"
+        ],
+        [
+          "2011-07-01",
+          "2445353.27"
+        ],
+        [
+          "2011-10-01",
+          "3179908.62"
+        ]
+      ]
+    },
+    {
+      "id": "T06",
+      "category": "时间趋势",
+      "question": "2011年11月每一天的商品正向交易金额",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT\n    invoice_date::date AS trans_date,\n    ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE\n    source_batch = '20260917T121850_455264Z'\n    AND include_product_sales = TRUE\n    AND invoice_date >= '2011-11-01'\n    AND invoice_date < '2011-12-01'\nGROUP BY trans_date\nORDER BY trans_date\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "2011-11-01",
+          "28873.15"
+        ],
+        [
+          "2011-11-02",
+          "45066.67"
+        ],
+        [
+          "2011-11-03",
+          "62726.98"
+        ],
+        [
+          "2011-11-04",
+          "62182.39"
+        ],
+        [
+          "2011-11-06",
+          "42586.60"
+        ]
+      ],
+      "model_result": [
+        [
+          "2011-11-01",
+          "28873.15"
+        ],
+        [
+          "2011-11-02",
+          "45066.67"
+        ],
+        [
+          "2011-11-03",
+          "62726.98"
+        ],
+        [
+          "2011-11-04",
+          "62182.39"
+        ],
+        [
+          "2011-11-06",
+          "42586.60"
+        ]
+      ]
+    },
+    {
+      "id": "M01",
+      "category": "多指标组合",
+      "question": "2011年11月的正向金额、取消金额、净额和订单数分别是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "include_product_cancellations",
+        "distinct"
+      ],
+      "model_sql": "SELECT\n  ROUND(SUM(line_amount) FILTER (WHERE include_product_sales), 2) AS product_gross_amount,\n  ROUND(-SUM(line_amount) FILTER (WHERE include_product_cancellations), 2) AS product_cancel_amount,\n  ROUND(SUM(line_amount) FILTER (WHERE include_product_sales OR include_product_cancellations), 2) AS product_net_amount,\n  COUNT(DISTINCT invoice_no) FILTER (WHERE include_product_sales) AS sales_orders\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\n  AND (include_product_sales = TRUE OR include_product_cancellations = TRUE)\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "1457745.53",
+          "25010.54",
+          "1432734.99",
+          2751
+        ]
+      ],
+      "model_result": [
+        [
+          "1457745.53",
+          "25010.54",
+          "1432734.99",
+          2751
+        ]
+      ]
+    },
+    {
+      "id": "M02",
+      "category": "多指标组合",
+      "question": "2011年11月金额最高的10个客户占全部正向金额的比例",
+      "execution_pass": false,
+      "result_pass": false,
+      "semantic_pass": false,
+      "required_tokens": [
+        "include_customer_sales",
+        "include_product_sales"
+      ],
+      "model_sql": "WITH top10_cust_sales AS (\n    SELECT SUM(line_amount) AS customer_sales\n    FROM analytics.transactions\n    WHERE source_batch = '20260917T121850_455264Z'\n      AND include_product_sales = TRUE\n      AND customer_id IS NOT NULL\n      AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\n    GROUP BY customer_id\n    ORDER BY customer_sales DESC\n    LIMIT 10\n),\ntotal_all_sales AS (\n    SELECT SUM(line_amount) AS total_sales\n    FROM analytics.transactions\n    WHERE source_batch = '20260917T121850_455264Z'\n      AND include_product_sales = TRUE\n      AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\n)\nSELECT ROUND((SUM(t1.customer_sales) / t2.total_sales * 100)::numeric, 2) AS top10_customer_sales_ratio\nFROM top10_cust_sales t1\nCROSS JOIN total_all_sales t2;",
+      "error": "GroupingError: 字段 \"t2.total_sales\" 必须出现在 GROUP BY 子句中或者在聚合函数中使用\nLINE 19: SELECT ROUND((SUM(t1.customer_sales) / t2.total_sales * 100)...\n                                                ^",
+      "reference_result": [
+        [
+          "12.01"
+        ]
+      ],
+      "model_result": []
+    },
+    {
+      "id": "M03",
+      "category": "多指标组合",
+      "question": "2011年11月正向金额最高的5个国家及其正向金额",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales",
+        "group by"
+      ],
+      "model_sql": "SELECT country, ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date) = '2011-11-01'::timestamp\nGROUP BY country\nORDER BY product_gross_amount DESC NULLS LAST\nLIMIT 5;",
+      "error": "",
+      "reference_result": [
+        [
+          "United Kingdom",
+          "1286274.78"
+        ],
+        [
+          "EIRE",
+          "29838.43"
+        ],
+        [
+          "France",
+          "29216.76"
+        ],
+        [
+          "Netherlands",
+          "25640.01"
+        ],
+        [
+          "Germany",
+          "24252.70"
+        ]
+      ],
+      "model_result": [
+        [
+          "United Kingdom",
+          "1286274.78"
+        ],
+        [
+          "EIRE",
+          "29838.43"
+        ],
+        [
+          "France",
+          "29216.76"
+        ],
+        [
+          "Netherlands",
+          "25640.01"
+        ],
+        [
+          "Germany",
+          "24252.70"
+        ]
+      ]
+    },
+    {
+      "id": "M04",
+      "category": "多指标组合",
+      "question": "2011年11月已识别客户的正向金额覆盖率是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_customer_sales",
+        "include_product_sales"
+      ],
+      "model_sql": "SELECT ROUND((SUM(line_amount) FILTER (WHERE include_customer_sales) / NULLIF(SUM(line_amount), 0)) * 100, 2) AS identified_coverage\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND DATE_TRUNC('month', invoice_date) = '2011-11-01'\n  AND include_product_sales = TRUE\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "78.35"
+        ]
+      ],
+      "model_result": [
+        [
+          "78.35"
+        ]
+      ]
+    },
+    {
+      "id": "C01",
+      "category": "口径陷阱",
+      "question": "2011年11月的总销售额是多少",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_product_sales"
+      ],
+      "model_sql": "SELECT ROUND(SUM(line_amount), 2) AS product_gross_amount\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND include_product_sales = TRUE\n  AND DATE_TRUNC('month', invoice_date)::date = '2011-11-01'\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          "1457745.53"
+        ]
+      ],
+      "model_result": [
+        [
+          "1457745.53"
+        ]
+      ]
+    },
+    {
+      "id": "C02",
+      "category": "口径陷阱",
+      "question": "2011年11月有多少个购买客户",
+      "execution_pass": true,
+      "result_pass": true,
+      "semantic_pass": true,
+      "required_tokens": [
+        "include_customer_sales",
+        "distinct"
+      ],
+      "model_sql": "SELECT COUNT(DISTINCT customer_id) AS identified_buyers\nFROM analytics.transactions\nWHERE source_batch = '20260917T121850_455264Z'\n  AND DATE_TRUNC('month', invoice_date) = '2011-11-01'::date\n  AND include_customer_sales = TRUE\nLIMIT 100;",
+      "error": "",
+      "reference_result": [
+        [
+          1660
+        ]
+      ],
+      "model_result": [
+        [
+          1660
+        ]
+      ]
+    }
+  ]
+}
