@@ -10,4 +10,7 @@ backups/
 data/raw/
 data/processed/
 reports/
+# 机器学习模块产出用于求职展示（文件小，允许提交）
+!ml-churn-retail/reports/
+!ml-churn-retail/reports/**
 *.log
