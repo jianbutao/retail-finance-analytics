@@ -87,7 +87,7 @@ Matplotlib、Streamlit。
 
 - 构建 30 题 Golden 评估集，设计执行成功率、结果一致率、口径正确率三层评分。
 - 经 badcase 归因（NULL 排序、TOP N 限制、别名规范、口径遗漏 4 类）并沉淀为生成规则，
-  结果一致率从 76.7% 提升至 93% 以上，执行成功率与口径正确率达 100%。
+  结果一致率从 76.7% 提升至 93% 以上，执行成功率与口径正确率均为 96.7%
 - Power BI 看板包含 KPI 卡片、月度趋势、国家 / 商品 TOP10、取消占比，DAX 度量值复用语义层口径。
 
 ### 运行
@@ -99,6 +99,21 @@ Matplotlib、Streamlit。
 & ".\nl2sql-retail\.venv\Scripts\python.exe" .\nl2sql-retail\src\02_nl2sql.py "2011年11月正向交易金额"
 # 评估集评分
 & ".\nl2sql-retail\.venv\Scripts\python.exe" .\nl2sql-retail\src\03_evaluate.py optimized
+
+## 客户流失预测与精准召回（ml-churn-retail/）
+
+在经营分析基础上构建客户流失预测模型，从"描述过去"走向"预测未来、指导行动"。
+
+技术链路：构建"观察6个月+预测3个月"双窗口标签（流失率47%）→ 6 个 RFM 特征
+→ 对比 LR/RF/GB 并通过5折交叉验证选型 → 输出风险×价值分层名单。
+
+### 关键结果
+- 5折交叉验证选定逻辑回归（CV AUC 0.755），测试集 AUC 0.752、KS 0.429、PR-AUC 0.697。
+- 模型圈选 TOP20% 客户 Lift 达 1.50；识别高风险客户 492 人，其中 57 名高价值客户为重点挽留对象（约16万）。
+- 详细技术文档见 ml-churn-retail/README.md。
+
+### 运行
+& ".\.venv\Scripts\python.exe" .\ml-churn-retail\src\05_output.py
 
 
 
